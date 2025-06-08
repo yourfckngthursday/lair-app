@@ -1,2 +1,0 @@
-# lair-app
-lair-app
