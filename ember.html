@@ -8,8 +8,8 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
 
-  <!-- TonConnect SDK -->
-  <script src="https://unpkg.com/@tonconnect/sdk@3.1.0/dist/umd/tonconnect-sdk.min.js"></script> 
+  <!-- TonConnect SDK (с обработкой загрузки) -->
+  <script id="tonconnect-sdk" defer onload="window.tonconnectLoaded = true;"></script>
 
   <style>
     :root {
@@ -83,10 +83,6 @@
     .balance-info.show {
       opacity: 1;
     }
-    .balance-info p {
-      margin: 0;
-      font-size: 24px;
-    }
     .btn {
       width: 100%;
       max-width: 250px;
@@ -121,9 +117,6 @@
     .btn:hover {
       transform: translateX(-5px);
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
-    }
-    .btn:active {
-      transform: translateX(-5px) scale(0.95);
     }
     .wallet-address {
       margin-top: 15px;
@@ -169,13 +162,6 @@
   <!-- Кнопка Access -->
   <button id="accessBtn" class="btn visible">ACCESS</button>
 
-  <!-- Блок обмена -->
-  <div id="exchangeBlock">
-    <button class="btn" data-amount="10">10 EMBER</button>
-    <button class="btn" data-amount="100">100 EMBER</button>
-    <button class="btn" data-amount="1000">1000 EMBER</button>
-  </div>
-
   <!-- Индикатор подключённого кошелька -->
   <div class="wallet-address" id="walletAddressDisplay"></div>
 
@@ -192,9 +178,7 @@
 
   // Элементы
   const accessBtn = document.getElementById('accessBtn');
-  const exchangeBlock = document.getElementById('exchangeBlock');
   const emberBalanceEl = document.getElementById('emberBalance');
-  const balanceInfo = document.getElementById('balanceInfo');
   const walletAddressDisplay = document.getElementById('walletAddressDisplay');
   const disconnectBtn = document.getElementById('disconnectBtn');
   const notification = document.getElementById('notification');
@@ -222,38 +206,32 @@
     emberBalanceEl.textContent = `${getEmberBalance().toFixed(2)} EMBER`;
   }
 
+  function updateUIAfterConnect(walletAddress) {
+    accessBtn.classList.add('hidden');
+    disconnectBtn.classList.remove('hidden');
+    walletAddressDisplay.textContent = walletAddress;
+    updateEmberBalanceUI();
+  }
+
   function updateUIBeforeConnect() {
     accessBtn.classList.remove('hidden');
     accessBtn.classList.add('visible');
-    exchangeBlock.style.display = 'none';
     disconnectBtn.classList.add('hidden');
-    emberBalanceEl.textContent = '';
-    balanceInfo.classList.remove('show');
     walletAddressDisplay.textContent = '';
-  }
-
-  function updateUIAfterConnect(walletAddress) {
-    accessBtn.classList.add('hidden');
-    exchangeBlock.style.display = 'flex';
-    exchangeBlock.style.flexDirection = 'column';
-    exchangeBlock.style.gap = '10px';
-    disconnectBtn.classList.remove('hidden');
-    setTimeout(() => {
-      document.querySelectorAll('.btn').forEach(btn => btn.classList.add('visible'));
-    }, 100);
-    walletAddressDisplay.textContent = walletAddress;
-    updateEmberBalanceUI();
-    balanceInfo.classList.add('show');
+    emberBalanceEl.textContent = '';
   }
 
   async function connectTonWallet() {
-    try {
-      if (typeof tonconnect_sdk === 'undefined') {
-        console.error("TonConnect SDK не загружен");
-        showNotification("SDK NOT LOADED");
-        return;
-      }
+    console.log("Начинаем подключение...");
 
+    // Проверяем, загрузился ли SDK
+    if (typeof tonconnect_sdk === 'undefined') {
+      console.error("TonConnect SDK не найден");
+      showNotification("SDK NOT LOADED");
+      return;
+    }
+
+    try {
       const connector = new tonconnect_sdk.TonConnect();
 
       await connector.connect({
@@ -270,10 +248,9 @@
         updateUIAfterConnect(walletInfo.account.address);
         showNotification("ACCESS GRANTED");
       }
-
     } catch (error) {
-      console.error("Ошибка подключения кошелька:", error);
-      showNotification("FAILED TO CONNECT WALLET");
+      console.error("Ошибка TonConnect:", error);
+      showNotification("CONNECTION FAILED");
     }
   }
 
@@ -302,7 +279,7 @@
     }, 1000);
   });
 
-  document.querySelectorAll('.btn').forEach(btn => {
+  document.querySelectorAll('.btn[data-amount]').forEach(btn => {
     btn.addEventListener('click', () => {
       const amount = parseInt(btn.dataset.amount);
       if (amount) {
@@ -327,7 +304,23 @@
     updateUIBeforeConnect();
   }
 
-  // --- Темная тема ---
+  // --- Загрузка TonConnect SDK ---
+  (function loadTonConnectSDK() {
+    const script = document.getElementById('tonconnect-sdk');
+    script.src = 'https://unpkg.com/@tonconnect/sdk@latest/dist/umd/tonconnect-sdk.min.js'; 
+    script.onload = () => {
+      console.log("TonConnect SDK успешно загружен");
+      window.tonconnect_sdk = tonconnect_sdk;
+    };
+    script.onerror = () => {
+      console.error("Не удалось загрузить TonConnect SDK");
+      showNotification("SDK LOAD ERROR");
+    };
+  })();
+</script>
+
+<!-- Темная тема -->
+<script>
   if (tg && tg.colorScheme === 'dark') {
     document.body.classList.add('dark');
   }
