@@ -9,7 +9,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
 
   <!-- TonConnect SDK -->
-  <script src="https://unpkg.com/@tonconnect/sdk@3.1.0/dist/umd/tonconnect-sdk.min.js"></script> 
+  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/umd/tonconnect-sdk.min.js"></script> 
 
   <style>
     :root {
@@ -199,45 +199,6 @@
     const disconnectBtn = document.getElementById('disconnectBtn');
     const notification = document.getElementById('notification');
 
-    // Проверяем состояние
-    const hasAccess = localStorage.getItem('wallet_connected') === 'true';
-    const walletConnected = localStorage.getItem('wallet_address') !== null;
-
-    if (hasAccess && walletConnected) {
-      updateUIAfterConnect();
-    } else {
-      updateUIBeforeConnect();
-    }
-
-    function updateUIBeforeConnect() {
-      accessBtn.classList.remove('hidden');
-      accessBtn.classList.add('visible');
-      exchangeBlock.style.display = 'none';
-      disconnectBtn.classList.add('hidden');
-      emberBalanceEl.textContent = '';
-      balanceInfo.classList.remove('show');
-      walletAddressDisplay.textContent = '';
-    }
-
-    function updateUIAfterConnect() {
-      accessBtn.classList.add('hidden');
-      exchangeBlock.style.display = 'flex';
-      exchangeBlock.style.flexDirection = 'column';
-      exchangeBlock.style.gap = '10px';
-      disconnectBtn.classList.remove('hidden');
-      setTimeout(() => {
-        document.querySelectorAll('.btn').forEach(btn => btn.classList.add('visible'));
-      }, 100);
-      walletAddressDisplay.textContent = localStorage.getItem('wallet_address') || '';
-      updateEmberBalanceUI();
-      balanceInfo.classList.add('show');
-    }
-
-    function haptic(feedback = 'light') {
-      if (!tg || !tg.HapticFeedback) return;
-      tg.HapticFeedback.impactOccurred(feedback);
-    }
-
     function showNotification(message) {
       notification.textContent = message;
       notification.classList.remove('hidden');
@@ -248,6 +209,11 @@
       }, 1000);
     }
 
+    function haptic(feedback = 'light') {
+      if (!tg || !tg.HapticFeedback) return;
+      tg.HapticFeedback.impactOccurred(feedback);
+    }
+
     function getEmberBalance() {
       return parseFloat(localStorage.getItem('ember_balance')) || 0;
     }
@@ -256,7 +222,7 @@
       emberBalanceEl.textContent = `${getEmberBalance().toFixed(2)} EMBER`;
     }
 
-    async function grantAccessAndConnectWallet() {
+    async function connectTonWallet() {
       try {
         if (typeof tonconnect_sdk === 'undefined') {
           console.error("TonConnect SDK не загружен");
@@ -274,17 +240,16 @@
         const walletInfo = await connector.walletInfo();
 
         if (walletInfo && walletInfo.account.address) {
-          const address = walletInfo.account.address;
           localStorage.setItem('wallet_connected', 'true');
-          localStorage.setItem('wallet_address', address);
+          localStorage.setItem('wallet_address', walletInfo.account.address);
           localStorage.setItem('ember_balance', 10); // начальный баланс
           updateUIAfterConnect();
-          walletAddressDisplay.textContent = address;
+          walletAddressDisplay.textContent = walletInfo.account.address;
           updateEmberBalanceUI();
           showNotification("ACCESS GRANTED");
         }
       } catch (error) {
-        console.error("Ошибка подключения:", error);
+        console.error("Ошибка подключения кошелька:", error);
         showNotification("FAILED TO CONNECT WALLET");
       }
     }
@@ -302,7 +267,7 @@
       current += amount;
       localStorage.setItem('ember_balance', current);
       updateEmberBalanceUI();
-      showNotification(`+${amount} EMBER`);
+      showNotification(`+${amount} EMBER ADDED`);
     }
 
     // --- Event Listeners ---
@@ -310,11 +275,11 @@
       haptic('heavy');
       showNotification("PROCESSING ACCESS...");
       setTimeout(() => {
-        grantAccessAndConnectWallet();
+        connectTonWallet();
       }, 1000);
     });
 
-    document.querySelectorAll('.btn[data-amount]').forEach(btn => {
+    document.querySelectorAll('.btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const amount = parseInt(btn.dataset.amount);
         if (amount) {
@@ -328,6 +293,16 @@
       haptic('heavy');
       disconnectWallet();
     });
+
+    // --- Проверяем состояние при загрузке ---
+    const isWalletConnected = localStorage.getItem('wallet_connected') === 'true';
+    const walletAddress = localStorage.getItem('wallet_address');
+
+    if (isWalletConnected && walletAddress) {
+      updateUIAfterConnect();
+    } else {
+      updateUIBeforeConnect();
+    }
 
     // --- Темная тема ---
     if (tg && tg.colorScheme === 'dark') {
