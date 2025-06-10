@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ember</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
+  <!-- TON Connect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script> 
   <style>
     :root {
@@ -38,79 +39,66 @@
       border-radius: 10px;
       padding: 25px 20px;
       box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
     }
-    .wallet-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .wallet-button {
+    .wallet-btn {
       width: 100%;
-      border: 2px solid white;
-      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      background: transparent;
       color: white;
+      font-size: 18px;
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 1px;
-      padding: 12px 15px;
-      font-size: 16px;
+      text-align: center;
+      padding: 12px 0;
       cursor: pointer;
-      outline: none;
       transition: all 0.2s ease;
-      border-radius: 0;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .wallet-button:hover {
-      transform: translateX(-5px);
+    .wallet-btn:hover {
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
     }
-    .wallet-button:active {
-      transform: translateX(-5px) scale(0.95);
+    .wallet-btn:active {
+      transform: scale(0.95);
     }
     .wallet-address {
-      font-size: 14px;
-      opacity: 0.7;
+      margin: 15px 0;
       text-align: center;
+      font-size: 14px;
+      opacity: 0.8;
       word-break: break-all;
-      padding: 5px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
     }
-    .purchase-section {
+    .buy-buttons {
       display: flex;
       flex-direction: column;
       gap: 10px;
+      margin-top: 20px;
     }
-    .purchase-button {
+    .buy-btn {
       width: 100%;
-      border: 2px solid #ffcc00;
-      background: rgba(255, 204, 0, 0.2);
-      color: #ffcc00;
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 16px;
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 1px;
-      padding: 12px 15px;
-      font-size: 16px;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.2s ease;
-      border-radius: 0;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-    }
-    .purchase-button:hover {
-      transform: translateX(-5px);
-      text-shadow: 0 0 10px rgba(255, 204, 0, 0.9);
-    }
-    .purchase-button:active {
-      transform: translateX(-5px) scale(0.95);
-    }
-    .balance-display {
-      font-size: 18px;
       text-align: center;
-      margin-top: 10px;
+      padding: 10px 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .buy-btn:hover {
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+    }
+    .buy-btn:active {
+      transform: scale(0.95);
+    }
+    .balance {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 18px;
       color: #ffcc00;
       text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
     }
@@ -149,20 +137,16 @@
   <button class="logout-btn" title="Выйти из аккаунта">&times;</button>
   
   <div class="container">
-    <div class="wallet-section">
-      <button id="walletBtn" class="wallet-button">CONNECT WALLET</button>
-      <div id="walletAddress" class="wallet-address hidden"></div>
+    <button id="walletBtn" class="wallet-btn">CONNECT WALLET</button>
+    <div id="walletAddress" class="wallet-address"></div>
+    
+    <div class="buy-buttons">
+      <button class="buy-btn" data-amount="10">10 EMBER</button>
+      <button class="buy-btn" data-amount="100">100 EMBER</button>
+      <button class="buy-btn" data-amount="1000">1000 EMBER</button>
     </div>
-
-    <div class="purchase-section">
-      <button data-amount="10" class="purchase-button">10 Ember</button>
-      <button data-amount="100" class="purchase-button">100 Ember</button>
-      <button data-amount="1000" class="purchase-button">1000 Ember</button>
-    </div>
-
-    <div class="balance-display" id="emberBalance">
-      Ember: 0
-    </div>
+    
+    <div class="balance">EMBERS: <span id="emberBalance">0</span></div>
   </div>
 
   <script>
@@ -171,9 +155,9 @@
 
     const logoutBtn = document.querySelector('.logout-btn');
     const walletBtn = document.getElementById('walletBtn');
-    const walletAddressDiv = document.getElementById('walletAddress');
-    const emberBalanceDiv = document.getElementById('emberBalance');
-    const purchaseButtons = document.querySelectorAll('.purchase-button');
+    const walletAddress = document.getElementById('walletAddress');
+    const emberBalance = document.getElementById('emberBalance');
+    const buyButtons = document.querySelectorAll('.buy-btn');
 
     // --- Проверка авторизации ---
     const isAuthorized = localStorage.getItem('authorized') === 'true';
@@ -181,101 +165,103 @@
       window.location.href = 'index.html';
     }
 
-    // --- Инициализация TON Connect ---
-    let connector = null;
-    async function initTonConnect() {
-      try {
-        connector = new TonConnectSDK.Connector();
-        await connector.restoreConnection();
-        
-        if (connector.connected) {
-          walletBtn.textContent = 'DISCONNECT WALLET';
-          walletAddressDiv.textContent = truncateAddress(connector.account.address);
-          walletAddressDiv.classList.remove('hidden');
-        }
-      } catch (error) {
-        console.error('Ошибка инициализации TON Connect:', error);
-      }
-    }
-
-    // --- Подключение/отключение кошелька ---
-    walletBtn.addEventListener('click', async () => {
-      if (!connector) {
-        await initTonConnect();
-      }
-
-      if (connector.connected) {
-        await connector.disconnect();
-        walletBtn.textContent = 'CONNECT WALLET';
-        walletAddressDiv.classList.add('hidden');
-        walletAddressDiv.textContent = '';
-      } else {
-        try {
-          const connectRequest = await connector.connect();
-          if (connectRequest.status === 'success') {
-            walletBtn.textContent = 'DISCONNECT WALLET';
-            walletAddressDiv.textContent = truncateAddress(connector.account.address);
-            walletAddressDiv.classList.remove('hidden');
-          }
-        } catch (error) {
-          console.error('Ошибка подключения кошелька:', error);
-        }
-      }
-    });
-
-    // --- Покупка Ember ---
-    purchaseButtons.forEach(button => {
-      button.addEventListener('click', async () => {
-        const emberAmount = parseInt(button.dataset.amount);
-        const tonAmount = emberAmount * 0.03; // 1 Ember = 0.03 TON
-        
-        if (!connector || !connector.connected) {
-          alert("Подключите кошелёк перед покупкой");
-          return;
-        }
-
-        try {
-          const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 360,
-            messages: [{
-              address: "UQAx...YOUR_SERVER_WALLET_ADDRESS", // Заменить на реальный адрес
-              amount: (tonAmount * 1e9).toString() // Конвертация в nanotons
-            }]
-          };
-
-          const result = await connector.sendTransaction(transaction);
-          
-          if (result.status === 'success') {
-            updateEmberBalance(emberAmount);
-          }
-        } catch (error) {
-          console.error('Ошибка транзакции:', error);
-          alert("Ошибка при выполнении платежа");
-        }
-      });
-    });
-
-    // --- Функции ---
-    function truncateAddress(address) {
-      return address ? `${address.slice(0, 4)}...${address.slice(-4)}` : '';
-    }
-
-    function updateEmberBalance(amount) {
-      let balance = parseFloat(localStorage.getItem('emberBalance') || '0');
-      balance += amount;
-      localStorage.setItem('emberBalance', balance.toFixed(2));
-      emberBalanceDiv.textContent = `Ember: ${balance.toFixed(2)}`;
-    }
-
-    function loadBalance() {
-      const balance = localStorage.getItem('emberBalance') || '0';
-      emberBalanceDiv.textContent = `Ember: ${parseFloat(balance).toFixed(2)}`;
-    }
-
+    // --- Haptic Feedback ---
     function haptic(feedback = 'light') {
       if (!tg || !tg.HapticFeedback) return;
       tg.HapticFeedback.impactOccurred(feedback);
     }
+
+    // --- Загрузка данных ---
+    let connector;
+    let connectedWallet = null;
+
+    function loadWalletData() {
+      connectedWallet = localStorage.getItem('walletAddress');
+      if (connectedWallet) {
+        walletBtn.textContent = 'DISCONNECT WALLET';
+        walletAddress.textContent = connectedWallet;
+      } else {
+        walletBtn.textContent = 'CONNECT WALLET';
+        walletAddress.textContent = '';
+      }
+    }
+
+    function loadEmberBalance() {
+      const balance = localStorage.getItem('emberBalance') || '0';
+      emberBalance.textContent = balance;
+    }
+
+    // --- Подключение кошелька ---
+    walletBtn.addEventListener('click', async () => {
+      haptic('heavy');
+      
+      if (connectedWallet) {
+        // Отключение кошелька
+        if (confirm("Вы действительно хотите отключить кошелек?")) {
+          localStorage.removeItem('walletAddress');
+          connectedWallet = null;
+          loadWalletData();
+        }
+        return;
+      }
+
+      // Подключение кошелька
+      try {
+        connector = new TonConnectSDK.Connector();
+        await connector.connect();
+        
+        if (connector.connected) {
+          const wallet = connector.wallet;
+          localStorage.setItem('walletAddress', wallet.account.address);
+          connectedWallet = wallet.account.address;
+          loadWalletData();
+        }
+      } catch (error) {
+        console.error('Ошибка подключения кошелька:', error);
+        alert('Не удалось подключить кошелек. Попробуйте еще раз.');
+      }
+    });
+
+    // --- Покупка Ember ---
+    buyButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const amount = parseInt(button.dataset.amount);
+        const tonAmount = (amount * 0.03).toFixed(6); // 1 Ember = 0.03 TON
+        
+        if (!connectedWallet) {
+          alert('Сначала подключите кошелек!');
+          return;
+        }
+        
+        if (!confirm(`Купить ${amount} Ember за ${tonAmount} TON?`)) return;
+        
+        haptic('heavy');
+        
+        // Инициация транзакции
+        try {
+          const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 360,
+            messages: [{
+              address: YOUR_SERVER_WALLET_ADDRESS, // Заменить на ваш кошелек
+              amount: tonAmount * 1e9 // Конвертация в nanotons
+            }]
+          };
+          
+          connector.sendTransaction(transaction).then(result => {
+            if (result.status === 'success') {
+              let balance = parseFloat(localStorage.getItem('emberBalance') || '0');
+              balance += amount;
+              localStorage.setItem('emberBalance', balance.toFixed(2));
+              loadEmberBalance();
+              alert(`Успешно! Получено ${amount} Ember.`);
+            }
+          });
+        } catch (error) {
+          console.error('Ошибка транзакции:', error);
+          alert('Произошла ошибка при выполнении транзакции.');
+        }
+      });
+    });
 
     // --- Выход из аккаунта ---
     logoutBtn.addEventListener('click', () => {
@@ -283,6 +269,7 @@
       if (confirm("Вы действительно хотите выйти?")) {
         localStorage.removeItem('authorized');
         localStorage.removeItem('telegram_user');
+        localStorage.removeItem('walletAddress');
         localStorage.removeItem('emberBalance');
         window.location.href = 'index.html';
       }
@@ -294,8 +281,8 @@
     }
 
     // --- Инициализация ---
-    initTonConnect();
-    loadBalance();
+    loadWalletData();
+    loadEmberBalance();
   </script>
 </body>
 </html>
