@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ember</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
-  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script> 
   <style>
     :root {
       --accent-color: white;
@@ -148,7 +147,9 @@
     <div class="balance">EMBERS: <span id="emberBalance">0</span></div>
   </div>
 
-  <script>
+  <script type="module">
+    import { Connector } from 'https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.esm.js'; 
+
     const tg = window.Telegram?.WebApp;
     if (tg) tg.expand();
 
@@ -203,10 +204,10 @@
       }
 
       try {
-        // Инициализация TON Connect
-        connector = new TonConnectSDK.Connector({
+        // Инициализация TON Connect через ESM
+        connector = new Connector({
           dappUrl: window.location.origin,
-          network: 'mainnet',
+          network: 'testnet',
           requiredFeatures: ['sendMessages'],
         });
 
