@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ember</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
-  <!-- TON Connect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script> 
   <style>
     :root {
@@ -172,11 +171,10 @@
     }
 
     // --- Загрузка данных ---
-    let connector;
-    let connectedWallet = null;
+    let connector = null;
+    let connectedWallet = localStorage.getItem('walletAddress');
 
     function loadWalletData() {
-      connectedWallet = localStorage.getItem('walletAddress');
       if (connectedWallet) {
         walletBtn.textContent = 'DISCONNECT WALLET';
         walletAddress.textContent = connectedWallet;
@@ -196,7 +194,6 @@
       haptic('heavy');
       
       if (connectedWallet) {
-        // Отключение кошелька
         if (confirm("Вы действительно хотите отключить кошелек?")) {
           localStorage.removeItem('walletAddress');
           connectedWallet = null;
@@ -205,9 +202,14 @@
         return;
       }
 
-      // Подключение кошелька
       try {
-        connector = new TonConnectSDK.Connector();
+        // Инициализация TON Connect
+        connector = new TonConnectSDK.Connector({
+          dappUrl: window.location.origin,
+          network: 'mainnet',
+          requiredFeatures: ['sendMessages'],
+        });
+
         await connector.connect();
         
         if (connector.connected) {
@@ -218,7 +220,7 @@
         }
       } catch (error) {
         console.error('Ошибка подключения кошелька:', error);
-        alert('Не удалось подключить кошелек. Попробуйте еще раз.');
+        alert(`Не удалось подключить кошелек. Ошибка: ${error.message}`);
       }
     });
 
@@ -242,8 +244,8 @@
           const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 360,
             messages: [{
-              address: YOUR_SERVER_WALLET_ADDRESS, // Заменить на ваш кошелек
-              amount: tonAmount * 1e9 // Конвертация в nanotons
+              address: 'EQAbcd1234567890abcdef...', // Заменить на ваш реальный адрес
+              amount: (tonAmount * 1e9).toString() // Конвертация в nanotons
             }]
           };
           
@@ -254,11 +256,16 @@
               localStorage.setItem('emberBalance', balance.toFixed(2));
               loadEmberBalance();
               alert(`Успешно! Получено ${amount} Ember.`);
+            } else {
+              alert(`Ошибка транзакции: ${result.error?.message || 'Неизвестная ошибка'}`);
             }
+          }).catch(error => {
+            console.error('Ошибка выполнения транзакции:', error);
+            alert(`Произошла ошибка: ${error.message}`);
           });
         } catch (error) {
-          console.error('Ошибка транзакции:', error);
-          alert('Произошла ошибка при выполнении транзакции.');
+          console.error('Ошибка инициации транзакции:', error);
+          alert(`Не удалось начать транзакцию. Ошибка: ${error.message}`);
         }
       });
     });
