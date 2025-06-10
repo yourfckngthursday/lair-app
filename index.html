@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Miniapp</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script> 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>  
   <style>
     :root {
       --accent-color: white;
@@ -133,25 +133,30 @@
   </style>
 </head>
 <body>
-  <button id="authBtn" class="auth-button">AUTHORIZATION</button>
+  <!-- Изменено: кнопка переименована в COME IN -->
+  <button id="authBtn" class="auth-button">COME IN</button>
+  
+  <!-- Изменено: удалена ссылка на login.html -->
   <div id="mainMenu" class="menu hidden" role="navigation" aria-label="Main menu">
-    <a href="login.html" class="menu-item" tabindex="0">Login</a>
     <a href="pit.html" class="menu-item" tabindex="0">Pit</a>
     <a href="lair.html" class="menu-item" tabindex="0">Lair</a>
     <a href="ember.html" class="menu-item" tabindex="0">Ember</a>
   </div>
+  
+  <!-- Кнопка выхода осталась без изменений -->
   <button class="logout-btn hidden" title="Выйти из аккаунта">&times;</button>
 
   <script>
     const tg = window.Telegram?.WebApp;
     if (tg) tg.expand();
-
+    
     const authBtn = document.getElementById('authBtn');
     const mainMenu = document.getElementById('mainMenu');
     const logoutBtn = document.querySelector('.logout-btn');
-
+    
+    // Проверка авторизации через localStorage
     const isAuthorized = localStorage.getItem('authorized') === 'true';
-
+    
     if (isAuthorized) {
       showMainMenu();
     } else {
@@ -178,19 +183,22 @@
     // --- Авторизация через Telegram ---
     authBtn.addEventListener('click', () => {
       haptic('heavy');
-
+      
+      // Проверка наличия данных Telegram
       if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
         alert("Ошибка: не удалось получить данные пользователя Telegram.");
         return;
       }
-
+      
       const telegramUser = tg.initDataUnsafe.user;
-
+      
+      // Сохранение авторизации и данных пользователя
       localStorage.setItem('authorized', 'true');
       localStorage.setItem('telegram_user', JSON.stringify(telegramUser));
-
+      
       showMainMenu();
-
+      
+      // Анимация появления пунктов меню
       setTimeout(() => {
         document.querySelectorAll('.menu-item').forEach((item, i) => {
           item.style.opacity = 0;
@@ -214,6 +222,7 @@
       }
     });
 
+    // --- Поддержка темной темы Telegram ---
     if (tg && tg.colorScheme === 'dark') {
       document.body.classList.add('dark');
     }
