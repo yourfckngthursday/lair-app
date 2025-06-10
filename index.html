@@ -57,8 +57,8 @@
     }
     .menu {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: 30px;   /* Изменено */
+      right: 30px;    /* Изменено */
       display: flex;
       flex-direction: column;
       align-items: flex-end;
@@ -133,17 +133,13 @@
   </style>
 </head>
 <body>
-  <!-- Изменено: кнопка переименована в COME IN -->
   <button id="authBtn" class="auth-button">COME IN</button>
   
-  <!-- Изменено: удалена ссылка на login.html -->
   <div id="mainMenu" class="menu hidden" role="navigation" aria-label="Main menu">
-    <a href="pit.html" class="menu-item" tabindex="0">Pit</a>
     <a href="lair.html" class="menu-item" tabindex="0">Lair</a>
     <a href="ember.html" class="menu-item" tabindex="0">Ember</a>
   </div>
   
-  <!-- Кнопка выхода осталась без изменений -->
   <button class="logout-btn hidden" title="Выйти из аккаунта">&times;</button>
 
   <script>
@@ -154,7 +150,6 @@
     const mainMenu = document.getElementById('mainMenu');
     const logoutBtn = document.querySelector('.logout-btn');
     
-    // Проверка авторизации через localStorage
     const isAuthorized = localStorage.getItem('authorized') === 'true';
     
     if (isAuthorized) {
@@ -184,7 +179,6 @@
     authBtn.addEventListener('click', () => {
       haptic('heavy');
       
-      // Проверка наличия данных Telegram
       if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
         alert("Ошибка: не удалось получить данные пользователя Telegram.");
         return;
@@ -192,13 +186,11 @@
       
       const telegramUser = tg.initDataUnsafe.user;
       
-      // Сохранение авторизации и данных пользователя
       localStorage.setItem('authorized', 'true');
       localStorage.setItem('telegram_user', JSON.stringify(telegramUser));
       
       showMainMenu();
       
-      // Анимация появления пунктов меню
       setTimeout(() => {
         document.querySelectorAll('.menu-item').forEach((item, i) => {
           item.style.opacity = 0;
@@ -222,7 +214,6 @@
       }
     });
 
-    // --- Поддержка темной темы Telegram ---
     if (tg && tg.colorScheme === 'dark') {
       document.body.classList.add('dark');
     }
