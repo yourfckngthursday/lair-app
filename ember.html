@@ -144,12 +144,10 @@
       <button class="buy-btn" data-amount="1000">1000 EMBER</button>
     </div>
     
-    <div class="balance">EMBER: <span id="emberBalance">0</span></div>
+    <div class="balance">EMBERS: <span id="emberBalance">0</span></div>
   </div>
 
-  <script type="module">
-    import { Connector } from 'https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.esm.js'; 
-
+  <script>
     const tg = window.Telegram?.WebApp;
     if (tg) tg.expand();
 
@@ -204,10 +202,11 @@
       }
 
       try {
-        // Инициализация TON Connect через ESM
-        connector = new Connector({
+        // Инициализация TON Connect
+        const { default: TonConnectSDK } = await import('@tonconnect/sdk');
+        connector = new TonConnectSDK.Connector({
           dappUrl: window.location.origin,
-          network: 'testnet',
+          network: 'mainnet',
           requiredFeatures: ['sendMessages'],
         });
 
@@ -245,7 +244,7 @@
           const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 360,
             messages: [{
-              address: 'UQAqUyA9f95CIjDmpSZcibVt3_NBieFxbdcRy7Do8T870p1Z',
+              address: 'UQAqUyA9f95CIjDmpSZcibVt3_NBieFxbdcRy7Do8T870p1Z', // Ваш серверный кошелек
               amount: (tonAmount * 1e9).toString() // Конвертация в nanotons
             }]
           };
@@ -279,7 +278,7 @@
         localStorage.removeItem('telegram_user');
         localStorage.removeItem('walletAddress');
         localStorage.removeItem('emberBalance');
-        window.location.href = 'index.html';
+        window.location.href = 'index.html'; // Перенаправление на главную страницу
       }
     });
 
