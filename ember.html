@@ -206,7 +206,7 @@
         const { default: TonConnectSDK } = await import('@tonconnect/sdk');
         connector = new TonConnectSDK.Connector({
           dappUrl: window.location.origin,
-          network: 'mainnet',
+          network: 'testnet',
           requiredFeatures: ['sendMessages'],
         });
 
