@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ember</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script> 
-  <!-- Важно: подключаем TON Connect до основного скрипта -->
+  <!-- Подключение TON Connect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script> 
   <style>
+    /* Стили из вашего index.txt */
     :root {
       --accent-color: white;
       --bg-overlay: rgba(0, 0, 0, 0.7);
@@ -150,14 +151,9 @@
   </div>
 
   <script>
-    // Telegram WebApp
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.expand();
-      console.log('Telegram WebApp инициализирован');
-    }
+    if (tg) tg.expand();
 
-    // DOM Elements
     const logoutBtn = document.querySelector('.logout-btn');
     const walletBtn = document.getElementById('walletBtn');
     const walletAddress = document.getElementById('walletAddress');
@@ -167,7 +163,6 @@
     // --- Проверка авторизации ---
     const isAuthorized = localStorage.getItem('authorized') === 'true';
     if (!isAuthorized) {
-      console.log('Пользователь не авторизован, перенаправление на index.html');
       window.location.href = 'index.html';
     }
 
@@ -198,11 +193,9 @@
 
     // --- Подключение кошелька ---
     walletBtn.addEventListener('click', async () => {
-      console.log('Нажата кнопка CONNECT WALLET');
       haptic('heavy');
       
       if (connectedWallet) {
-        console.log('Отключение кошелька');
         if (confirm("Вы действительно хотите отключить кошелек?")) {
           localStorage.removeItem('walletAddress');
           connectedWallet = null;
@@ -212,9 +205,8 @@
       }
 
       try {
-        console.log('Инициализация TON Connect');
-        // Используем глобальный объект TonConnectSDK
-        connector = new TonConnectSDK.Connector({
+        // Инициализация TON Connect
+        connector = new window.TonConnectSDK.Connector({
           dappUrl: window.location.origin,
           network: 'testnet',
           requiredFeatures: ['sendMessages'],
@@ -224,7 +216,6 @@
         
         if (connector.connected) {
           const wallet = connector.wallet;
-          console.log('Кошелек подключен:', wallet.account.address);
           localStorage.setItem('walletAddress', wallet.account.address);
           connectedWallet = wallet.account.address;
           loadWalletData();
@@ -260,8 +251,6 @@
             }]
           };
           
-          console.log('Инициация транзакции:', transaction);
-          
           connector.sendTransaction(transaction).then(result => {
             if (result.status === 'success') {
               let balance = parseFloat(localStorage.getItem('emberBalance') || '0');
@@ -285,14 +274,12 @@
 
     // --- Выход из аккаунта ---
     logoutBtn.addEventListener('click', () => {
-      console.log('Нажата кнопка выхода');
       haptic('heavy');
       if (confirm("Вы действительно хотите выйти?")) {
         localStorage.removeItem('authorized');
         localStorage.removeItem('telegram_user');
         localStorage.removeItem('walletAddress');
         localStorage.removeItem('emberBalance');
-        console.log('Очистка localStorage и перенаправление на index.html');
         window.location.href = 'index.html'; // Перенаправление на главную страницу
       }
     });
@@ -303,7 +290,6 @@
     }
 
     // --- Инициализация ---
-    console.log('Инициализация страницы');
     loadWalletData();
     loadEmberBalance();
   </script>
